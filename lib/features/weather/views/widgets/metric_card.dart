@@ -21,7 +21,7 @@ class MetricCard extends StatelessWidget {
       decoration: ShapeDecoration(
         color: const Color(0x2248319D),
         shape: RoundedRectangleBorder(
-          side: BorderSide(width: 1, color: Colors.white.withOpacity(0.15)),
+          side: BorderSide(width: 1, color: Colors.white.withValues(alpha: 0.15)),
           borderRadius: BorderRadius.circular(22),
         ),
       ),
@@ -38,7 +38,7 @@ class MetricCard extends StatelessWidget {
                 height: 70,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: const Color(0xFF612FAB).withOpacity(0.15),
+                  color: const Color(0xFF612FAB).withValues(alpha: 0.15),
                 ),
               ),
             ),

@@ -22,13 +22,13 @@ class HourlyForecastCard extends StatelessWidget {
         color: isActive ? const Color(0xFF48319D) : const Color(0x2248319D),
         borderRadius: BorderRadius.circular(30),
         border: Border.all(
-          color: isActive ? const Color(0xFFA18CFF) : Colors.white.withOpacity(0.12),
+          color: isActive ? const Color(0xFFA18CFF) : Colors.white.withValues(alpha: 0.12),
           width: isActive ? 2.0 : 1.0,
         ),
         boxShadow: isActive
             ? [
                 BoxShadow(
-                  color: const Color(0xFF612FAB).withOpacity(0.3),
+                  color: const Color(0xFF612FAB).withValues(alpha: 0.3),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 )

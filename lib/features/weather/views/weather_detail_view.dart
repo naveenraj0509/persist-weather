@@ -46,7 +46,7 @@ class WeatherDetailView extends StatelessWidget {
                     Text(
                       'Details',
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.5),
+                        color: Colors.white.withValues(alpha: 0.5),
                         fontSize: 14,
                       ),
                     ),
@@ -258,7 +258,7 @@ class WeatherDetailView extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0x2248319D),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.08)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
       ),
       child: Row(
         children: [

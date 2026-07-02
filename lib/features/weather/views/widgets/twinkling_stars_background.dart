@@ -101,12 +101,12 @@ class StarsPainter extends CustomPainter {
 
     // 2. Draw subtle background glow blobs for depth
     final Paint glowPaint1 = Paint()
-      ..color = const Color(0xFF612FAB).withOpacity(0.18)
+      ..color = const Color(0xFF612FAB).withValues(alpha: 0.18)
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 80);
     canvas.drawCircle(Offset(size.width * 0.2, size.height * 0.3), size.width * 0.4, glowPaint1);
 
     final Paint glowPaint2 = Paint()
-      ..color = const Color(0xB23B267B).withOpacity(0.25)
+      ..color = const Color(0xB23B267B).withValues(alpha: 0.25)
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 120);
     canvas.drawCircle(Offset(size.width * 0.8, size.height * 0.6), size.width * 0.5, glowPaint2);
 
@@ -117,7 +117,7 @@ class StarsPainter extends CustomPainter {
       final double opacity = ((sinVal + 1) / 2) * 0.7 + 0.3; // opacity between 0.3 and 1.0
 
       final Paint starPaint = Paint()
-        ..color = Colors.white.withOpacity(opacity)
+        ..color = Colors.white.withValues(alpha: opacity)
         ..style = PaintingStyle.fill;
 
       // Draw star coordinate mapping percentage to actual size
@@ -129,7 +129,7 @@ class StarsPainter extends CustomPainter {
       // Add a subtle glow/cross to larger stars
       if (star.size > 2.2 && opacity > 0.8) {
         final Paint flarePaint = Paint()
-          ..color = Colors.white.withOpacity(opacity * 0.3)
+          ..color = Colors.white.withValues(alpha: opacity * 0.3)
           ..strokeWidth = 0.5;
         
         canvas.drawLine(Offset(position.dx - 4, position.dy), Offset(position.dx + 4, position.dy), flarePaint);

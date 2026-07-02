@@ -34,7 +34,7 @@ class StylizedWeatherHouse extends StatelessWidget {
                 borderRadius: BorderRadius.circular(4),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.3),
+                    color: Colors.black.withValues(alpha: 0.3),
                     blurRadius: 4,
                     offset: const Offset(2, 2),
                   )
@@ -78,7 +78,7 @@ class StylizedWeatherHouse extends StatelessWidget {
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF0F0B26).withOpacity(0.5),
+                    color: const Color(0xFF0F0B26).withValues(alpha: 0.5),
                     blurRadius: 20,
                     offset: const Offset(0, 10),
                   )
@@ -99,7 +99,7 @@ class StylizedWeatherHouse extends StatelessWidget {
                         right: 0,
                         child: Container(
                           height: 1,
-                          color: const Color(0xFF5A4B9B).withOpacity(0.3),
+                          color: const Color(0xFF5A4B9B).withValues(alpha: 0.3),
                         ),
                       ),
 
@@ -161,7 +161,7 @@ class StylizedWeatherHouse extends StatelessWidget {
                 border: Border.all(color: const Color(0xFFE4A4CD), width: 3),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFFFFEB3B).withOpacity(0.2),
+                    color: const Color(0xFFFFEB3B).withValues(alpha: 0.2),
                     blurRadius: 10,
                     spreadRadius: 2,
                   ),
@@ -299,7 +299,7 @@ class StylizedWeatherHouse extends StatelessWidget {
               decoration: BoxDecoration(
                 color: const Color(0xFF6E52A3),
                 borderRadius: BorderRadius.circular(3),
-                border: Border.all(color: const Color(0xFFE4A4CD).withOpacity(0.6), width: 0.5),
+                border: Border.all(color: const Color(0xFFE4A4CD).withValues(alpha: 0.6), width: 0.5),
               ),
             ),
           ),
@@ -362,8 +362,8 @@ class StylizedWeatherHouse extends StatelessWidget {
         gradient: RadialGradient(
           colors: [
             Colors.white,
-            color.withOpacity(0.8),
-            color.withOpacity(0.0),
+            color.withValues(alpha: 0.8),
+            color.withValues(alpha: 0.0),
           ],
           stops: const [0.1, 0.6, 1.0],
         ),
@@ -400,7 +400,7 @@ class RoofPainter extends CustomPainter {
 
     // Add roof shading lines (shingles texture)
     final Paint linePaint = Paint()
-      ..color = const Color(0xFFE4A4CD).withOpacity(0.25)
+      ..color = const Color(0xFFE4A4CD).withValues(alpha: 0.25)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2;
 

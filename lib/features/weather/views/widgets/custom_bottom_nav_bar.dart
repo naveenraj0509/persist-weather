@@ -79,7 +79,7 @@ class CustomBottomNavBar extends StatelessWidget {
                   color: Colors.white,
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF612FAB).withOpacity(0.5),
+                      color: const Color(0xFF612FAB).withValues(alpha: 0.5),
                       blurRadius: 15,
                       spreadRadius: 2,
                       offset: const Offset(0, 4),
@@ -153,7 +153,7 @@ class BottomNavBarPainter extends CustomPainter {
     canvas.drawPath(
       path,
       Paint()
-        ..color = Colors.black.withOpacity(0.4)
+        ..color = Colors.black.withValues(alpha: 0.4)
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10)
         ..style = PaintingStyle.fill,
     );

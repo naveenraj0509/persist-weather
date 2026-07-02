@@ -29,7 +29,7 @@
 
 ## How the Final Code Was Verified
 
-1. **Static analysis**: Ran `flutter analyze` — 0 errors, 0 warnings (only info-level deprecation notices on `withOpacity` in pre-existing widget code).
+1. **Static analysis**: Ran `flutter analyze` — 0 errors, 0 warnings, 0 info items (all deprecated `withOpacity` usages were refactored to `.withValues()`).
 2. **Unit tests**: Ran `flutter test` — all tests pass.
 3. **Code review**: Manually reviewed all files for proper separation of concerns, no API calls in widgets, and consistent error handling.
 4. **Architecture check**: Verified MVVM pattern: Models have no Flutter dependencies, ViewModel only depends on services, Views only depend on ViewModel via Provider.
