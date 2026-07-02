@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'features/weather/services/weather_service.dart';
 import 'features/weather/services/cache_service.dart';
+import 'features/weather/services/location_service.dart';
 import 'features/weather/viewmodels/weather_viewmodel.dart';
 import 'features/weather/views/weather_view.dart';
 
@@ -28,6 +29,7 @@ class MyApp extends StatelessWidget {
           create: (_) => WeatherViewModel(
             weatherService: WeatherService(),
             cacheService: CacheService(prefs),
+            locationService: LocationService(),
           ),
         ),
       ],

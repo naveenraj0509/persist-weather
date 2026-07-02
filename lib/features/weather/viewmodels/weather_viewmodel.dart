@@ -2,15 +2,17 @@ import 'package:flutter/material.dart';
 import '../models/weather_model.dart';
 import '../services/weather_service.dart';
 import '../services/cache_service.dart';
+import '../services/location_service.dart';
 
 /// ViewModel for weather data using ChangeNotifier for Provider state management.
 ///
 /// Manages all weather-related state: loading, error, offline, current weather,
-/// hourly and daily forecasts. Delegates API calls to [WeatherService] and
-/// caching to [CacheService]. No API calls happen directly in this class.
+/// hourly and daily forecasts. Delegates API calls to [WeatherService], location
+/// coordinates to [LocationService], and caching to [CacheService].
 class WeatherViewModel extends ChangeNotifier {
   final WeatherService _weatherService;
   final CacheService _cacheService;
+  final LocationService _locationService;
 
   // --- State Fields ---
   WeatherModel? _weather;
@@ -23,8 +25,10 @@ class WeatherViewModel extends ChangeNotifier {
   WeatherViewModel({
     required WeatherService weatherService,
     required CacheService cacheService,
+    required LocationService locationService,
   })  : _weatherService = weatherService,
-        _cacheService = cacheService;
+        _cacheService = cacheService,
+        _locationService = locationService;
 
   // --- Getters ---
   WeatherModel? get weather => _weather;
@@ -143,6 +147,75 @@ class WeatherViewModel extends ChangeNotifier {
   Future<void> retry() async {
     if (_selectedCity.isNotEmpty) {
       await fetchWeather(_selectedCity);
+    }
+  }
+
+  /// Fetches weather data for the device's current location via GPS.
+  Future<void> fetchWeatherForCurrentLocation() async {
+    _isLoading = true;
+    _errorMessage = null;
+    _isOffline = false;
+    notifyListeners();
+
+    try {
+      // Step 1: Get GPS coordinates
+      final position = await _locationService.getCurrentPosition();
+      final lat = position.latitude;
+      final lon = position.longitude;
+
+      // Step 2: Reverse-geocode coordinates to get location name
+      final reverseGeo = await _weatherService.reverseGeocode(lat, lon);
+      final cityName = reverseGeo['name'] ?? 'Current Location';
+      final countryName = reverseGeo['country'] ?? '';
+
+      // Construct a geocoding data structure matching what the geocoding API would return
+      final geoData = {
+        'name': cityName,
+        'country': countryName,
+        'latitude': lat,
+        'longitude': lon,
+      };
+
+      // Step 3: Fetch weather for these coordinates
+      final forecastJson = await _weatherService.fetchWeather(
+        latitude: lat,
+        longitude: lon,
+      );
+
+      // Step 4: Parse API response
+      _weather = WeatherModel.fromOpenMeteo(forecastJson, geoData);
+      _selectedCity = cityName;
+      _isOffline = false;
+      _errorMessage = null;
+
+      // Cache the successful result
+      await _cacheService.cacheWeatherData(
+        city: cityName,
+        weatherJson: forecastJson,
+        geoJson: geoData,
+      );
+      await _cacheService.saveLastSearchedCity(cityName);
+    } on LocationServiceException catch (e) {
+      _errorMessage = e.message;
+      // If we already have weather loaded, keep it so the UI doesn't blank out
+    } on WeatherApiException catch (e) {
+      // Try to fall back to cached data on network errors
+      if (e.isNetworkError && _selectedCity.isNotEmpty) {
+        final cached = _tryLoadFromCache(_selectedCity);
+        if (cached) {
+          _isOffline = true;
+          _errorMessage = null;
+        } else {
+          _errorMessage = e.message;
+        }
+      } else {
+        _errorMessage = e.message;
+      }
+    } catch (e) {
+      _errorMessage = 'Failed to locate device: $e';
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
   }
 

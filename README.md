@@ -101,6 +101,7 @@ lib/
 - **Hourly Forecast**: Next 8 hours in 1-hour intervals
 - **5-Day Forecast**: Daily high/low temperatures with conditions
 - **Weather Details**: Humidity, pressure, visibility, wind speed, sunrise/sunset
+- **GPS Location Detection**: Auto-detect device location using GPS, reverse-geocode coordinates to actual city names via BigDataCloud API, and load real-time weather.
 - **Offline Caching**: Last successful result cached per city using `SharedPreferences`
 - **Error Handling**: Loading, empty, error, and retry states
 - **Premium UI**: Glassmorphic design, twinkling stars, animated backgrounds
@@ -109,14 +110,13 @@ lib/
 
 1. Temperature is displayed in Celsius (metric units).
 2. Wind speed is displayed in km/h.
-3. The app defaults to an empty state on first launch — the user must search for a city.
+3. The app defaults to an empty state on first launch — the user must search for a city or tap the locate button.
 4. Cached data is shown with an offline banner when the network is unavailable.
 5. Cached data is considered stale after 30 minutes but is still used as a fallback when offline.
 
 ## Known Limitations
 
-1. **No location-based weather**: The app doesn't use device GPS/location services. Users must search for cities manually.
-2. **Weather icons**: Uses CupertinoIcons rather than external images for a consistent iOS-style look.
-3. **No unit toggle**: Only Celsius is supported (no Fahrenheit toggle).
-4. **Search matches**: Since it uses Open-Meteo's geocoding API, spelling matches the first result returned by the service.
-5. **No push notifications or background updates**.
+1. **Weather icons**: Uses CupertinoIcons rather than external images for a consistent iOS-style look.
+2. **No unit toggle**: Only Celsius is supported (no Fahrenheit toggle).
+3. **Search matches**: Since it uses Open-Meteo's geocoding API, spelling matches the first result returned by the service.
+4. **No push notifications or background updates**.

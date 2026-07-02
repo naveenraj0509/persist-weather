@@ -569,7 +569,7 @@ class _WeatherViewState extends State<WeatherView> {
               left: 0,
               right: 0,
               child: CustomBottomNavBar(
-                onMapPressed: _navigateToSearch,
+                onMapPressed: () => viewModel.fetchWeatherForCurrentLocation(),
                 onAddPressed: _navigateToSearch,
                 onListPressed: _navigateToDetail,
               ),

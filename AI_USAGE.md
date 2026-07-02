@@ -8,18 +8,18 @@
 
 1. **Architecture planning**: Designing the MVVM folder structure, service layer separation, and Provider integration pattern.
 2. **Boilerplate generation**: Generating initial model classes, service classes, and widget skeletons.
-3. **API integration**: Writing the `WeatherService` class for Open-Meteo (Geocoding + Forecast) API calls with proper error handling and no API keys.
-4. **Code refactoring**: Extracting inline widget builders into standalone widget files for modularity.
+3. **API integration**: Writing the `WeatherService` class for Open-Meteo API calls and BigDataCloud reverse geocoding, plus the `LocationService` class using `geolocator`.
+4. **Code refactoring**: Extracting inline widget builders and integrating GPS location actions across the home and search screens.
 5. **Documentation**: Drafting README.md, SUBMISSION.md, and this file.
 
 ## Code and Architecture Decisions Reviewed Manually
 
-1. **API response parsing**: Verified that `WeatherModel.fromOpenMeteo()` correctly maps all Open-Meteo JSON fields, especially coordinates, WMO weather codes, and daily forecast lists.
-2. **Error handling strategy**: Reviewed the decision to show cached data on network errors vs. showing an error screen, and the distinction between 404 (city not found) and network errors.
-3. **State management flow**: Confirmed that `ChangeNotifier` + `Provider` is used consistently with no other state management packages.
-4. **Offline caching design**: Reviewed the `CacheService` to ensure data is serialized/deserialized correctly and the staleness check (30-min expiry) works as expected.
-5. **API choice**: Switched to Open-Meteo to strictly adhere to the requirement of using a free API that does not require any API key or registration.
-6. **Navigation architecture**: Decided to use full-screen `SearchView` and `WeatherDetailView` via `Navigator.push` rather than dialogs for better UX.
+1. **API response parsing**: Verified that `WeatherModel.fromOpenMeteo()` correctly maps all Open-Meteo JSON fields, and BigDataCloud geocoding translates coordinate outputs back to proper locality strings.
+2. **Error handling strategy**: Reviewed the decision to show cached data on network errors vs. showing an error screen, handling location permission denials, and handling location service disabled exceptions.
+3. **State management flow**: Confirmed that `ChangeNotifier` + `Provider` is used consistently and location services are cleanly injected.
+4. **Offline caching design**: Reviewed the `CacheService` to ensure GPS-resolved location weather is also correctly cached.
+5. **API choice**: Switched to Open-Meteo and BigDataCloud to strictly adhere to the requirement of using free, keyless client APIs.
+6. **Navigation architecture**: Decided to use full-screen `SearchView` and `WeatherDetailView` via `Navigator.push` rather than dialogs, and mapped bottom bar icon actions cleanly.
 
 ## AI-Generated Output Rejected or Corrected
 

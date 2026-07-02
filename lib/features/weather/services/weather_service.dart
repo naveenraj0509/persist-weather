@@ -118,6 +118,65 @@ class WeatherService {
     }
   }
 
+  /// Reverse geocodes coordinates (lat/lon) into a city and country name using BigDataCloud API.
+  ///
+  /// Returns a map with 'name' and 'country' keys.
+  /// Throws [WeatherApiException] on failure.
+  Future<Map<String, String>> reverseGeocode(double latitude, double longitude) async {
+    final uri = Uri.parse(
+      'https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=$latitude&longitude=$longitude&localityLanguage=en',
+    );
+
+    try {
+      final response = await _client.get(uri).timeout(
+        const Duration(seconds: 10),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body) as Map<String, dynamic>;
+        
+        // Find the most appropriate name representing the city/locality
+        String cityName = '';
+        if (data['city'] != null && (data['city'] as String).isNotEmpty) {
+          cityName = data['city'] as String;
+        } else if (data['locality'] != null && (data['locality'] as String).isNotEmpty) {
+          cityName = data['locality'] as String;
+        } else if (data['principalSubdivision'] != null && (data['principalSubdivision'] as String).isNotEmpty) {
+          cityName = data['principalSubdivision'] as String;
+        } else {
+          cityName = 'Current Location';
+        }
+
+        final countryName = data['countryName'] as String? ?? '';
+        return {
+          'name': cityName,
+          'country': countryName,
+        };
+      } else {
+        throw WeatherApiException(
+          'Failed to resolve location name (${response.statusCode}).',
+          statusCode: response.statusCode,
+        );
+      }
+    } on WeatherApiException {
+      rethrow;
+    } on SocketException {
+      throw WeatherApiException(
+        'No internet connection. Please check your network and try again.',
+        isNetworkError: true,
+      );
+    } on HttpException {
+      throw WeatherApiException(
+        'Could not reach the geocoding service.',
+        isNetworkError: true,
+      );
+    } on FormatException {
+      throw WeatherApiException(
+        'Received invalid geocoding data.',
+      );
+    }
+  }
+
   void dispose() {
     _client.close();
   }

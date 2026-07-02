@@ -143,6 +143,8 @@ class _SearchViewState extends State<SearchView> {
                 child: ListView(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   children: [
+                    _buildLocationTile(),
+                    const SizedBox(height: 24),
                     // Recent Cities
                     if (recentCities.isNotEmpty) ...[
                       const Text(
@@ -247,6 +249,53 @@ class _SearchViewState extends State<SearchView> {
             fontSize: 14,
             fontWeight: FontWeight.w500,
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLocationTile() {
+    return GestureDetector(
+      onTap: () {
+        final viewModel = context.read<WeatherViewModel>();
+        viewModel.fetchWeatherForCurrentLocation();
+        Navigator.of(context).pop();
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xEE48319D), Color(0xEE2A2550)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: const Color(0x80A18CFF)),
+        ),
+        child: const Row(
+          children: [
+            Icon(
+              CupertinoIcons.location_fill,
+              color: Color(0xFFA18CFF),
+              size: 20,
+            ),
+            SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Use Current Location',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            Icon(
+              CupertinoIcons.chevron_right,
+              color: Colors.white54,
+              size: 16,
+            ),
+          ],
         ),
       ),
     );
