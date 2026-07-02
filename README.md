@@ -4,15 +4,19 @@ A beautiful Flutter weather application with real-time weather data, 5-day forec
 
 ## Project Overview
 
-Persist Weather is a mobile weather app built with Flutter using the MVVM architecture pattern and Provider for state management. It fetches real weather data from the OpenWeatherMap API and provides a premium, glassmorphic dark UI with smooth animations.
+Persist Weather is a mobile weather app built with Flutter using the MVVM architecture pattern and Provider for state management. It fetches real weather data from the Open-Meteo API and provides a premium, glassmorphic dark UI with smooth animations.
 
 ## API Used
 
-- **OpenWeatherMap API** (Free Tier)
-  - Current Weather: `GET /data/2.5/weather`
-  - 5-Day Forecast: `GET /data/2.5/forecast`
-  - No credit card required
-  - 60 calls/min, 1M calls/month
+- **Open-Meteo Geocoding API**
+  - Search cities: `GET https://geocoding-api.open-meteo.com/v1/search`
+  - Resolves city names to latitude and longitude coordinates.
+  - **No API key required.**
+
+- **Open-Meteo Forecast API**
+  - Weather forecast: `GET https://api.open-meteo.com/v1/forecast`
+  - Fetches current weather, 24-hour hourly forecast, and 5-day daily forecast.
+  - **No API key required.**
 
 ## Setup Instructions
 
@@ -20,7 +24,6 @@ Persist Weather is a mobile weather app built with Flutter using the MVVM archit
 
 - Flutter SDK (3.10.8 or later)
 - Dart SDK (included with Flutter)
-- An OpenWeatherMap API key (free): [Sign up here](https://home.openweathermap.org/users/sign_up)
 
 ### Installation
 
@@ -35,30 +38,25 @@ Persist Weather is a mobile weather app built with Flutter using the MVVM archit
    flutter pub get
    ```
 
-3. **Get your API key:**
-   - Sign up at [OpenWeatherMap](https://home.openweathermap.org/users/sign_up)
-   - Navigate to [API Keys](https://home.openweathermap.org/api_keys)
-   - Copy your API key (may take up to 2 hours to activate for new accounts)
-
 ## How to Run the App
 
-Run the app with your API key passed as a compile-time constant:
+Run the app normally without any special environment variables:
 
 ```bash
-flutter run --dart-define=OWM_API_KEY=your_api_key_here
+flutter run
 ```
 
 ### Running on specific platforms
 
 ```bash
 # iOS
-flutter run --dart-define=OWM_API_KEY=your_api_key_here -d ios
+flutter run -d ios
 
 # Android
-flutter run --dart-define=OWM_API_KEY=your_api_key_here -d android
+flutter run -d android
 
 # Chrome (web)
-flutter run --dart-define=OWM_API_KEY=your_api_key_here -d chrome
+flutter run -d chrome
 ```
 
 ### Running tests
@@ -78,7 +76,7 @@ lib/
         ├── models/                    # Data models
         │   └── weather_model.dart     # WeatherModel, HourlyForecast, DailyForecast
         ├── services/                  # API & cache layer
-        │   ├── weather_service.dart   # HTTP calls to OpenWeatherMap
+        │   ├── weather_service.dart   # HTTP calls to Open-Meteo
         │   └── cache_service.dart     # SharedPreferences caching
         ├── viewmodels/                # Business logic
         │   └── weather_viewmodel.dart # ChangeNotifier state management
@@ -99,28 +97,26 @@ lib/
 ## Key Features
 
 - **Current Weather**: Real-time temperature, condition, and city info
-- **City Search**: Full-screen search with popular cities and recent search history
-- **Hourly Forecast**: Next 24 hours in 3-hour intervals
+- **City Search**: Full-screen search with popular cities and recent search history (via Open-Meteo Geocoding)
+- **Hourly Forecast**: Next 8 hours in 1-hour intervals
 - **5-Day Forecast**: Daily high/low temperatures with conditions
-- **Weather Details**: Humidity, pressure, visibility, wind, sunrise/sunset
-- **Offline Caching**: Last successful result cached per city
+- **Weather Details**: Humidity, pressure, visibility, wind speed, sunrise/sunset
+- **Offline Caching**: Last successful result cached per city using `SharedPreferences`
 - **Error Handling**: Loading, empty, error, and retry states
 - **Premium UI**: Glassmorphic design, twinkling stars, animated backgrounds
 
 ## Assumptions
 
 1. Temperature is displayed in Celsius (metric units).
-2. Wind speed is displayed in m/s (OpenWeatherMap default for metric).
+2. Wind speed is displayed in km/h.
 3. The app defaults to an empty state on first launch — the user must search for a city.
 4. Cached data is shown with an offline banner when the network is unavailable.
-5. The API key is passed at build time and is never committed to version control.
-6. The 5-day forecast groups 3-hour entries by date for daily min/max temperatures.
+5. Cached data is considered stale after 30 minutes but is still used as a fallback when offline.
 
 ## Known Limitations
 
 1. **No location-based weather**: The app doesn't use device GPS/location services. Users must search for cities manually.
-2. **Weather icons**: Uses CupertinoIcons rather than OpenWeatherMap's icon images for a consistent iOS-style look.
+2. **Weather icons**: Uses CupertinoIcons rather than external images for a consistent iOS-style look.
 3. **No unit toggle**: Only Celsius is supported (no Fahrenheit toggle).
-4. **Cache expiry**: Cached data is considered stale after 30 minutes but is still used as a fallback when offline.
-5. **Search is city-name based**: No autocomplete or geocoding — the user must type an exact city name recognized by OpenWeatherMap.
-6. **No push notifications or background updates**.
+4. **Search matches**: Since it uses Open-Meteo's geocoding API, spelling matches the first result returned by the service.
+5. **No push notifications or background updates**.

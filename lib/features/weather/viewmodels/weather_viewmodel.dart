@@ -57,10 +57,11 @@ class WeatherViewModel extends ChangeNotifier {
   /// Flow:
   /// 1. Validate input
   /// 2. Set loading state
-  /// 3. Call WeatherService for current weather + forecast
-  /// 4. Parse response into WeatherModel
-  /// 5. Cache the result
-  /// 6. On network failure, fall back to cached data
+  /// 3. Call Geocoding API to get lat/lon for the city
+  /// 4. Call Forecast API with lat/lon
+  /// 5. Parse response into WeatherModel
+  /// 6. Cache the result
+  /// 7. On network failure, fall back to cached data
   Future<void> fetchWeather(String cityName) async {
     final city = cityName.trim();
     if (city.isEmpty) {
@@ -77,25 +78,28 @@ class WeatherViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // Fetch both current weather and forecast in parallel
-      final results = await Future.wait([
-        _weatherService.fetchCurrentWeather(city),
-        _weatherService.fetchForecast(city),
-      ]);
+      // Step 1: Geocode city name → lat/lon
+      final geoResults = await _weatherService.searchCity(city);
+      final geoData = geoResults.first;
+      final lat = (geoData['latitude'] as num).toDouble();
+      final lon = (geoData['longitude'] as num).toDouble();
 
-      final currentJson = results[0];
-      final forecastJson = results[1];
+      // Step 2: Fetch weather using coordinates
+      final forecastJson = await _weatherService.fetchWeather(
+        latitude: lat,
+        longitude: lon,
+      );
 
-      // Parse API responses into the model
-      _weather = WeatherModel.fromApiResponses(currentJson, forecastJson);
+      // Parse API response into the model
+      _weather = WeatherModel.fromOpenMeteo(forecastJson, geoData);
       _isOffline = false;
       _errorMessage = null;
 
       // Cache the successful result
       await _cacheService.cacheWeatherData(
-        city: city,
-        currentWeatherJson: currentJson,
-        forecastJson: forecastJson,
+        city: _weather!.cityName,
+        weatherJson: forecastJson,
+        geoJson: geoData,
       );
       await _cacheService.saveLastSearchedCity(_weather!.cityName);
     } on WeatherApiException catch (e) {
@@ -149,9 +153,9 @@ class WeatherViewModel extends ChangeNotifier {
     final cachedData = _cacheService.getCachedWeatherData(city);
     if (cachedData != null) {
       try {
-        final currentJson = cachedData['current'] as Map<String, dynamic>;
-        final forecastJson = cachedData['forecast'] as Map<String, dynamic>;
-        _weather = WeatherModel.fromApiResponses(currentJson, forecastJson);
+        final forecastJson = cachedData['weather'] as Map<String, dynamic>;
+        final geoJson = cachedData['geo'] as Map<String, dynamic>;
+        _weather = WeatherModel.fromOpenMeteo(forecastJson, geoJson);
         return true;
       } catch (_) {
         return false;

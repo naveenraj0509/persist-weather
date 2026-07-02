@@ -31,18 +31,18 @@ class CacheService {
     return _prefs.getString(_lastCityKey);
   }
 
-  /// Caches weather data (current + forecast) for a city.
+  /// Caches weather data (weather forecast + geocoding data) for a city.
   Future<void> cacheWeatherData({
     required String city,
-    required Map<String, dynamic> currentWeatherJson,
-    required Map<String, dynamic> forecastJson,
+    required Map<String, dynamic> weatherJson,
+    required Map<String, dynamic> geoJson,
   }) async {
     final cacheKey = _weatherCachePrefix + city.toLowerCase().trim();
     final timestampKey = _cacheTimestampPrefix + city.toLowerCase().trim();
 
     final cacheData = {
-      'current': currentWeatherJson,
-      'forecast': forecastJson,
+      'weather': weatherJson,
+      'geo': geoJson,
     };
 
     await _prefs.setString(cacheKey, json.encode(cacheData));
@@ -51,7 +51,7 @@ class CacheService {
 
   /// Retrieves cached weather data for a city.
   ///
-  /// Returns a map with 'current' and 'forecast' keys, or null if no cache exists.
+  /// Returns a map with 'weather' and 'geo' keys, or null if no cache exists.
   Map<String, dynamic>? getCachedWeatherData(String city) {
     final cacheKey = _weatherCachePrefix + city.toLowerCase().trim();
     final cachedString = _prefs.getString(cacheKey);

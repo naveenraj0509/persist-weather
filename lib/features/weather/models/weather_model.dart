@@ -1,31 +1,33 @@
 /// Represents current weather data for a city.
 ///
-/// Maps to the OpenWeatherMap `/data/2.5/weather` API response.
+/// Maps to the Open-Meteo forecast API response (no API key needed).
 class WeatherModel {
   final String cityName;
+  final String country;
   final double temperature;
   final double feelsLike;
   final String condition;
   final String description;
-  final String weatherIcon;
+  final int weatherCode;
   final double windSpeed;
   final int humidity;
   final double tempHigh;
   final double tempLow;
   final int pressure;
   final int visibility;
-  final int sunrise;
-  final int sunset;
+  final String sunrise;
+  final String sunset;
   final List<HourlyForecast> hourlyForecast;
   final List<DailyForecast> dailyForecast;
 
   WeatherModel({
     required this.cityName,
+    required this.country,
     required this.temperature,
     required this.feelsLike,
     required this.condition,
     required this.description,
-    required this.weatherIcon,
+    required this.weatherCode,
     required this.windSpeed,
     required this.humidity,
     required this.tempHigh,
@@ -40,29 +42,31 @@ class WeatherModel {
 
   WeatherModel copyWith({
     String? cityName,
+    String? country,
     double? temperature,
     double? feelsLike,
     String? condition,
     String? description,
-    String? weatherIcon,
+    int? weatherCode,
     double? windSpeed,
     int? humidity,
     double? tempHigh,
     double? tempLow,
     int? pressure,
     int? visibility,
-    int? sunrise,
-    int? sunset,
+    String? sunrise,
+    String? sunset,
     List<HourlyForecast>? hourlyForecast,
     List<DailyForecast>? dailyForecast,
   }) {
     return WeatherModel(
       cityName: cityName ?? this.cityName,
+      country: country ?? this.country,
       temperature: temperature ?? this.temperature,
       feelsLike: feelsLike ?? this.feelsLike,
       condition: condition ?? this.condition,
       description: description ?? this.description,
-      weatherIcon: weatherIcon ?? this.weatherIcon,
+      weatherCode: weatherCode ?? this.weatherCode,
       windSpeed: windSpeed ?? this.windSpeed,
       humidity: humidity ?? this.humidity,
       tempHigh: tempHigh ?? this.tempHigh,
@@ -76,110 +80,105 @@ class WeatherModel {
     );
   }
 
-  /// Creates a [WeatherModel] from combined current weather + forecast JSON.
+  /// Creates a [WeatherModel] from the Open-Meteo forecast API response
+  /// combined with geocoding data.
   ///
-  /// [currentJson] maps to `/data/2.5/weather` response.
-  /// [forecastJson] maps to `/data/2.5/forecast` response.
-  factory WeatherModel.fromApiResponses(
-    Map<String, dynamic> currentJson,
+  /// [forecastJson] is the full response from `/v1/forecast`.
+  /// [geoData] is a single result from the geocoding API.
+  factory WeatherModel.fromOpenMeteo(
     Map<String, dynamic> forecastJson,
+    Map<String, dynamic> geoData,
   ) {
-    final main = currentJson['main'] as Map<String, dynamic>;
-    final weather = (currentJson['weather'] as List).first as Map<String, dynamic>;
-    final wind = currentJson['wind'] as Map<String, dynamic>;
-    final sys = currentJson['sys'] as Map<String, dynamic>;
+    final current = forecastJson['current'] as Map<String, dynamic>;
+    final hourly = forecastJson['hourly'] as Map<String, dynamic>;
+    final daily = forecastJson['daily'] as Map<String, dynamic>;
 
-    // Parse hourly forecast (next 8 entries = ~24 hours)
-    final forecastList = (forecastJson['list'] as List)
-        .take(8)
-        .map((e) => HourlyForecast.fromForecastJson(e as Map<String, dynamic>))
-        .toList();
+    // Current weather code
+    final currentCode = (current['weather_code'] as num).toInt();
 
-    // Parse daily forecast (group by date, aggregate min/max temps)
-    final dailyForecast = _parseDailyForecast(forecastJson['list'] as List);
+    // Parse hourly forecast — take next 8 hours from current time
+    final hourlyTimes = (hourly['time'] as List).cast<String>();
+    final hourlyTemps = (hourly['temperature_2m'] as List);
+    final hourlyCodes = (hourly['weather_code'] as List);
+    final hourlyPrecip = (hourly['precipitation_probability'] as List);
 
-    return WeatherModel(
-      cityName: currentJson['name'] as String,
-      temperature: (main['temp'] as num).toDouble(),
-      feelsLike: (main['feels_like'] as num).toDouble(),
-      condition: weather['main'] as String,
-      description: weather['description'] as String,
-      weatherIcon: weather['icon'] as String,
-      windSpeed: (wind['speed'] as num).toDouble(),
-      humidity: (main['humidity'] as num).toInt(),
-      tempHigh: (main['temp_max'] as num).toDouble(),
-      tempLow: (main['temp_min'] as num).toDouble(),
-      pressure: (main['pressure'] as num).toInt(),
-      visibility: (currentJson['visibility'] as num?)?.toInt() ?? 10000,
-      sunrise: (sys['sunrise'] as num).toInt(),
-      sunset: (sys['sunset'] as num).toInt(),
-      hourlyForecast: forecastList,
-      dailyForecast: dailyForecast,
-    );
-  }
-
-  /// Groups the 3-hour forecast entries by date and aggregates into daily forecasts.
-  static List<DailyForecast> _parseDailyForecast(List forecastList) {
-    final Map<String, List<Map<String, dynamic>>> grouped = {};
-
-    for (final entry in forecastList) {
-      final map = entry as Map<String, dynamic>;
-      final dtTxt = map['dt_txt'] as String;
-      final dateKey = dtTxt.split(' ')[0]; // "YYYY-MM-DD"
-
-      grouped.putIfAbsent(dateKey, () => []);
-      grouped[dateKey]!.add(map);
+    // Find the current hour index
+    final now = DateTime.now();
+    int startIndex = 0;
+    for (int i = 0; i < hourlyTimes.length; i++) {
+      final hourTime = DateTime.parse(hourlyTimes[i]);
+      if (hourTime.isAfter(now) || hourTime.isAtSameMomentAs(now)) {
+        startIndex = i > 0 ? i - 1 : 0;
+        break;
+      }
     }
 
-    final List<DailyForecast> dailyForecasts = [];
-    for (final entry in grouped.entries) {
-      if (dailyForecasts.length >= 5) break;
-
-      final items = entry.value;
-      double maxTemp = double.negativeInfinity;
-      double minTemp = double.infinity;
-      // Use the midday entry (or first available) for condition/icon
-      Map<String, dynamic>? representativeEntry;
-
-      for (final item in items) {
-        final main = item['main'] as Map<String, dynamic>;
-        final tempMax = (main['temp_max'] as num).toDouble();
-        final tempMin = (main['temp_min'] as num).toDouble();
-        if (tempMax > maxTemp) maxTemp = tempMax;
-        if (tempMin < minTemp) minTemp = tempMin;
-
-        // Prefer the 12:00 or 15:00 entry as representative
-        final dtTxt = item['dt_txt'] as String;
-        if (dtTxt.contains('12:00') || dtTxt.contains('15:00')) {
-          representativeEntry = item;
-        }
-      }
-      representativeEntry ??= items.first;
-      final weather = (representativeEntry['weather'] as List).first
-          as Map<String, dynamic>;
-
-      dailyForecasts.add(DailyForecast(
-        date: entry.key,
-        tempMax: maxTemp,
-        tempMin: minTemp,
-        condition: weather['main'] as String,
-        description: weather['description'] as String,
-        icon: weather['icon'] as String,
+    final List<HourlyForecast> hourlyList = [];
+    for (int i = startIndex; i < hourlyTimes.length && hourlyList.length < 8; i++) {
+      final dt = DateTime.parse(hourlyTimes[i]);
+      final code = (hourlyCodes[i] as num).toInt();
+      hourlyList.add(HourlyForecast(
+        time: i == startIndex ? 'Now' : '${dt.hour.toString().padLeft(2, '0')}:00',
+        temperature: (hourlyTemps[i] as num).toDouble(),
+        condition: _wmoCondition(code),
+        weatherCode: code,
+        rainChance: (hourlyPrecip[i] as num).toInt(),
+        dateTime: dt,
       ));
     }
 
-    return dailyForecasts;
+    // Parse daily forecast
+    final dailyTimes = (daily['time'] as List).cast<String>();
+    final dailyMaxTemps = (daily['temperature_2m_max'] as List);
+    final dailyMinTemps = (daily['temperature_2m_min'] as List);
+    final dailyCodes = (daily['weather_code'] as List);
+    final dailySunrises = (daily['sunrise'] as List).cast<String>();
+    final dailySunsets = (daily['sunset'] as List).cast<String>();
+
+    final List<DailyForecast> dailyList = [];
+    for (int i = 0; i < dailyTimes.length && i < 5; i++) {
+      final code = (dailyCodes[i] as num).toInt();
+      dailyList.add(DailyForecast(
+        date: dailyTimes[i],
+        tempMax: (dailyMaxTemps[i] as num).toDouble(),
+        tempMin: (dailyMinTemps[i] as num).toDouble(),
+        condition: _wmoCondition(code),
+        description: _wmoDescription(code),
+        weatherCode: code,
+      ));
+    }
+
+    return WeatherModel(
+      cityName: geoData['name'] as String,
+      country: geoData['country'] as String? ?? '',
+      temperature: (current['temperature_2m'] as num).toDouble(),
+      feelsLike: (current['apparent_temperature'] as num).toDouble(),
+      condition: _wmoCondition(currentCode),
+      description: _wmoDescription(currentCode),
+      weatherCode: currentCode,
+      windSpeed: (current['wind_speed_10m'] as num).toDouble(),
+      humidity: (current['relative_humidity_2m'] as num).toInt(),
+      tempHigh: dailyList.isNotEmpty ? dailyList[0].tempMax : (current['temperature_2m'] as num).toDouble(),
+      tempLow: dailyList.isNotEmpty ? dailyList[0].tempMin : (current['temperature_2m'] as num).toDouble(),
+      pressure: (current['surface_pressure'] as num).toInt(),
+      visibility: (current['visibility'] as num?)?.toInt() ?? 10000,
+      sunrise: dailySunrises.isNotEmpty ? dailySunrises[0] : '',
+      sunset: dailySunsets.isNotEmpty ? dailySunsets[0] : '',
+      hourlyForecast: hourlyList,
+      dailyForecast: dailyList,
+    );
   }
 
   /// Serializes to JSON for local cache storage.
   Map<String, dynamic> toJson() {
     return {
       'cityName': cityName,
+      'country': country,
       'temperature': temperature,
       'feelsLike': feelsLike,
       'condition': condition,
       'description': description,
-      'weatherIcon': weatherIcon,
+      'weatherCode': weatherCode,
       'windSpeed': windSpeed,
       'humidity': humidity,
       'tempHigh': tempHigh,
@@ -197,19 +196,20 @@ class WeatherModel {
   factory WeatherModel.fromJson(Map<String, dynamic> json) {
     return WeatherModel(
       cityName: json['cityName'] as String,
+      country: json['country'] as String? ?? '',
       temperature: (json['temperature'] as num).toDouble(),
       feelsLike: (json['feelsLike'] as num?)?.toDouble() ?? (json['temperature'] as num).toDouble(),
       condition: json['condition'] as String,
       description: json['description'] as String? ?? json['condition'] as String,
-      weatherIcon: json['weatherIcon'] as String? ?? '01d',
+      weatherCode: (json['weatherCode'] as num?)?.toInt() ?? 0,
       windSpeed: (json['windSpeed'] as num).toDouble(),
       humidity: json['humidity'] as int,
       tempHigh: (json['tempHigh'] as num).toDouble(),
       tempLow: (json['tempLow'] as num).toDouble(),
       pressure: (json['pressure'] as num?)?.toInt() ?? 1013,
       visibility: (json['visibility'] as num?)?.toInt() ?? 10000,
-      sunrise: (json['sunrise'] as num?)?.toInt() ?? 0,
-      sunset: (json['sunset'] as num?)?.toInt() ?? 0,
+      sunrise: json['sunrise'] as String? ?? '',
+      sunset: json['sunset'] as String? ?? '',
       hourlyForecast: (json['hourlyForecast'] as List?)
               ?.map((e) => HourlyForecast.fromJson(e as Map<String, dynamic>))
               .toList() ??
@@ -221,16 +221,91 @@ class WeatherModel {
     );
   }
 
-  /// Returns the OpenWeatherMap icon URL for the current weather.
-  String get iconUrl => 'https://openweathermap.org/img/wn/$weatherIcon@2x.png';
+  /// Converts WMO weather code to a short condition name.
+  static String _wmoCondition(int code) {
+    if (code == 0) return 'Clear';
+    if (code <= 3) return 'Cloudy';
+    if (code <= 49) return 'Fog';
+    if (code <= 59) return 'Drizzle';
+    if (code <= 69) return 'Rain';
+    if (code <= 79) return 'Snow';
+    if (code <= 84) return 'Showers';
+    if (code <= 89) return 'Snow';
+    if (code <= 99) return 'Thunderstorm';
+    return 'Unknown';
+  }
+
+  /// Converts WMO weather code to a human-readable description.
+  static String _wmoDescription(int code) {
+    switch (code) {
+      case 0:
+        return 'Clear sky';
+      case 1:
+        return 'Mainly clear';
+      case 2:
+        return 'Partly cloudy';
+      case 3:
+        return 'Overcast';
+      case 45:
+        return 'Foggy';
+      case 48:
+        return 'Depositing rime fog';
+      case 51:
+        return 'Light drizzle';
+      case 53:
+        return 'Moderate drizzle';
+      case 55:
+        return 'Dense drizzle';
+      case 56:
+        return 'Freezing light drizzle';
+      case 57:
+        return 'Freezing dense drizzle';
+      case 61:
+        return 'Slight rain';
+      case 63:
+        return 'Moderate rain';
+      case 65:
+        return 'Heavy rain';
+      case 66:
+        return 'Freezing light rain';
+      case 67:
+        return 'Freezing heavy rain';
+      case 71:
+        return 'Slight snowfall';
+      case 73:
+        return 'Moderate snowfall';
+      case 75:
+        return 'Heavy snowfall';
+      case 77:
+        return 'Snow grains';
+      case 80:
+        return 'Slight rain showers';
+      case 81:
+        return 'Moderate rain showers';
+      case 82:
+        return 'Violent rain showers';
+      case 85:
+        return 'Slight snow showers';
+      case 86:
+        return 'Heavy snow showers';
+      case 95:
+        return 'Thunderstorm';
+      case 96:
+        return 'Thunderstorm with slight hail';
+      case 99:
+        return 'Thunderstorm with heavy hail';
+      default:
+        return 'Unknown';
+    }
+  }
 }
 
-/// Represents a single 3-hour forecast entry.
+/// Represents a single hourly forecast entry.
 class HourlyForecast {
   final String time;
   final double temperature;
   final String condition;
-  final String icon;
+  final int weatherCode;
   final int rainChance;
   final DateTime dateTime;
 
@@ -238,39 +313,17 @@ class HourlyForecast {
     required this.time,
     required this.temperature,
     required this.condition,
-    required this.icon,
+    required this.weatherCode,
     required this.rainChance,
     required this.dateTime,
   });
-
-  /// Creates from a single entry in the `/data/2.5/forecast` `list` array.
-  factory HourlyForecast.fromForecastJson(Map<String, dynamic> json) {
-    final main = json['main'] as Map<String, dynamic>;
-    final weather = (json['weather'] as List).first as Map<String, dynamic>;
-    final dt = json['dt'] as int;
-    final dateTime = DateTime.fromMillisecondsSinceEpoch(dt * 1000);
-
-    // Rain probability comes from `pop` field (0.0 to 1.0)
-    final pop = (json['pop'] as num?)?.toDouble() ?? 0.0;
-
-    return HourlyForecast(
-      time: '${dateTime.hour.toString().padLeft(2, '0')}:00',
-      temperature: (main['temp'] as num).toDouble(),
-      condition: weather['main'] as String,
-      icon: weather['icon'] as String,
-      rainChance: (pop * 100).round(),
-      dateTime: dateTime,
-    );
-  }
-
-  String get iconUrl => 'https://openweathermap.org/img/wn/$icon@2x.png';
 
   Map<String, dynamic> toJson() {
     return {
       'time': time,
       'temperature': temperature,
       'condition': condition,
-      'icon': icon,
+      'weatherCode': weatherCode,
       'rainChance': rainChance,
       'dateTime': dateTime.millisecondsSinceEpoch,
     };
@@ -281,7 +334,7 @@ class HourlyForecast {
       time: json['time'] as String,
       temperature: (json['temperature'] as num).toDouble(),
       condition: json['condition'] as String,
-      icon: json['icon'] as String? ?? '01d',
+      weatherCode: (json['weatherCode'] as num?)?.toInt() ?? 0,
       rainChance: json['rainChance'] as int,
       dateTime: DateTime.fromMillisecondsSinceEpoch(
         (json['dateTime'] as num?)?.toInt() ?? 0,
@@ -297,7 +350,7 @@ class DailyForecast {
   final double tempMin;
   final String condition;
   final String description;
-  final String icon;
+  final int weatherCode;
 
   DailyForecast({
     required this.date,
@@ -305,10 +358,8 @@ class DailyForecast {
     required this.tempMin,
     required this.condition,
     required this.description,
-    required this.icon,
+    required this.weatherCode,
   });
-
-  String get iconUrl => 'https://openweathermap.org/img/wn/$icon@2x.png';
 
   Map<String, dynamic> toJson() {
     return {
@@ -317,7 +368,7 @@ class DailyForecast {
       'tempMin': tempMin,
       'condition': condition,
       'description': description,
-      'icon': icon,
+      'weatherCode': weatherCode,
     };
   }
 
@@ -328,7 +379,7 @@ class DailyForecast {
       tempMin: (json['tempMin'] as num).toDouble(),
       condition: json['condition'] as String,
       description: json['description'] as String? ?? json['condition'] as String,
-      icon: json['icon'] as String? ?? '01d',
+      weatherCode: (json['weatherCode'] as num?)?.toInt() ?? 0,
     );
   }
 }

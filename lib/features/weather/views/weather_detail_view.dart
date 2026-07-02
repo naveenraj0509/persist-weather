@@ -210,10 +210,10 @@ class WeatherDetailView extends StatelessWidget {
   }
 
   Widget _buildSunTimesRow() {
-    final sunrise = DateTime.fromMillisecondsSinceEpoch(weather.sunrise * 1000);
-    final sunset = DateTime.fromMillisecondsSinceEpoch(weather.sunset * 1000);
-    final sunriseStr = DateFormat('h:mm a').format(sunrise);
-    final sunsetStr = DateFormat('h:mm a').format(sunset);
+    final sunrise = DateTime.tryParse(weather.sunrise) ?? DateTime.now();
+    final sunset = DateTime.tryParse(weather.sunset) ?? DateTime.now();
+    final sunriseStr = DateFormat('h:mm a').format(sunrise.toLocal());
+    final sunsetStr = DateFormat('h:mm a').format(sunset.toLocal());
 
     return Row(
       children: [

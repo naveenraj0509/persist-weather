@@ -3,27 +3,26 @@ import 'dart:io';
 
 import 'package:http/http.dart' as http;
 
-/// Service responsible for making HTTP calls to the OpenWeatherMap API.
+/// Service responsible for making HTTP calls to the Open-Meteo API.
 ///
-/// API key is injected via `--dart-define=OWM_API_KEY=<your_key>` at build time.
-/// No API calls are made directly from widgets or ViewModels.
+/// Open-Meteo is a completely free, open-source weather API that
+/// requires NO API key, no signup, and no registration.
+/// https://open-meteo.com
 class WeatherService {
-  static const String _baseUrl = 'https://api.openweathermap.org/data/2.5';
-  static const String _apiKey = String.fromEnvironment('OWM_API_KEY');
+  static const String _forecastBaseUrl = 'https://api.open-meteo.com/v1';
+  static const String _geocodingBaseUrl = 'https://geocoding-api.open-meteo.com/v1';
 
   final http.Client _client;
 
   WeatherService({http.Client? client}) : _client = client ?? http.Client();
 
-  /// Fetches current weather data for a given [city].
+  /// Searches for a city by name using the Open-Meteo Geocoding API.
   ///
-  /// Returns the raw JSON response as a Map.
+  /// Returns a list of matching locations with lat/lon coordinates.
   /// Throws [WeatherApiException] on failure.
-  Future<Map<String, dynamic>> fetchCurrentWeather(String city) async {
-    _validateApiKey();
-
+  Future<List<Map<String, dynamic>>> searchCity(String cityName) async {
     final uri = Uri.parse(
-      '$_baseUrl/weather?q=${Uri.encodeComponent(city)}&appid=$_apiKey&units=metric',
+      '$_geocodingBaseUrl/search?name=${Uri.encodeComponent(cityName)}&count=5&language=en&format=json',
     );
 
     try {
@@ -32,23 +31,23 @@ class WeatherService {
       );
 
       if (response.statusCode == 200) {
-        return json.decode(response.body) as Map<String, dynamic>;
-      } else if (response.statusCode == 404) {
-        throw WeatherApiException(
-          'City "$city" not found. Please check the spelling and try again.',
-          statusCode: 404,
-        );
-      } else if (response.statusCode == 401) {
-        throw WeatherApiException(
-          'Invalid API key. Please check your OpenWeatherMap API key.',
-          statusCode: 401,
-        );
+        final data = json.decode(response.body) as Map<String, dynamic>;
+        final results = data['results'] as List?;
+        if (results == null || results.isEmpty) {
+          throw WeatherApiException(
+            'City "$cityName" not found. Please check the spelling and try again.',
+            statusCode: 404,
+          );
+        }
+        return results.cast<Map<String, dynamic>>();
       } else {
         throw WeatherApiException(
           'Server error (${response.statusCode}). Please try again later.',
           statusCode: response.statusCode,
         );
       }
+    } on WeatherApiException {
+      rethrow;
     } on SocketException {
       throw WeatherApiException(
         'No internet connection. Please check your network and try again.',
@@ -66,15 +65,25 @@ class WeatherService {
     }
   }
 
-  /// Fetches the 5-day / 3-hour forecast for a given [city].
+  /// Fetches weather data (current + hourly + daily) for given coordinates.
   ///
+  /// Uses a single API call to get all weather data at once.
   /// Returns the raw JSON response as a Map.
   /// Throws [WeatherApiException] on failure.
-  Future<Map<String, dynamic>> fetchForecast(String city) async {
-    _validateApiKey();
-
+  Future<Map<String, dynamic>> fetchWeather({
+    required double latitude,
+    required double longitude,
+  }) async {
     final uri = Uri.parse(
-      '$_baseUrl/forecast?q=${Uri.encodeComponent(city)}&appid=$_apiKey&units=metric',
+      '$_forecastBaseUrl/forecast'
+      '?latitude=$latitude'
+      '&longitude=$longitude'
+      '&current=temperature_2m,relative_humidity_2m,apparent_temperature,'
+      'weather_code,wind_speed_10m,surface_pressure,visibility'
+      '&hourly=temperature_2m,weather_code,precipitation_probability'
+      '&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset'
+      '&timezone=auto'
+      '&forecast_days=5',
     );
 
     try {
@@ -84,17 +93,14 @@ class WeatherService {
 
       if (response.statusCode == 200) {
         return json.decode(response.body) as Map<String, dynamic>;
-      } else if (response.statusCode == 404) {
-        throw WeatherApiException(
-          'Forecast data not found for "$city".',
-          statusCode: 404,
-        );
       } else {
         throw WeatherApiException(
           'Server error (${response.statusCode}). Please try again later.',
           statusCode: response.statusCode,
         );
       }
+    } on WeatherApiException {
+      rethrow;
     } on SocketException {
       throw WeatherApiException(
         'No internet connection. Please check your network and try again.',
@@ -108,14 +114,6 @@ class WeatherService {
     } on FormatException {
       throw WeatherApiException(
         'Received invalid data from the server. Please try again.',
-      );
-    }
-  }
-
-  void _validateApiKey() {
-    if (_apiKey.isEmpty) {
-      throw WeatherApiException(
-        'API key not configured. Run with: flutter run --dart-define=OWM_API_KEY=<your_key>',
       );
     }
   }
