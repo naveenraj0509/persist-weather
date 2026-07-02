@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:http/http.dart' as http;
+import 'package:persist_weather/core/constants/api_constants.dart';
 
 /// Service responsible for making HTTP calls to the Open-Meteo API.
 ///
@@ -9,9 +10,6 @@ import 'package:http/http.dart' as http;
 /// requires NO API key, no signup, and no registration.
 /// https://open-meteo.com
 class WeatherService {
-  static const String _forecastBaseUrl = 'https://api.open-meteo.com/v1';
-  static const String _geocodingBaseUrl = 'https://geocoding-api.open-meteo.com/v1';
-
   final http.Client _client;
 
   WeatherService({http.Client? client}) : _client = client ?? http.Client();
@@ -22,7 +20,7 @@ class WeatherService {
   /// Throws [WeatherApiException] on failure.
   Future<List<Map<String, dynamic>>> searchCity(String cityName) async {
     final uri = Uri.parse(
-      '$_geocodingBaseUrl/search?name=${Uri.encodeComponent(cityName)}&count=5&language=en&format=json',
+      '${ApiConstants.geocodingBaseUrl}/search?name=${Uri.encodeComponent(cityName)}&count=5&language=en&format=json',
     );
 
     try {
@@ -75,7 +73,7 @@ class WeatherService {
     required double longitude,
   }) async {
     final uri = Uri.parse(
-      '$_forecastBaseUrl/forecast'
+      '${ApiConstants.forecastBaseUrl}/forecast'
       '?latitude=$latitude'
       '&longitude=$longitude'
       '&current=temperature_2m,relative_humidity_2m,apparent_temperature,'
@@ -124,7 +122,7 @@ class WeatherService {
   /// Throws [WeatherApiException] on failure.
   Future<Map<String, String>> reverseGeocode(double latitude, double longitude) async {
     final uri = Uri.parse(
-      'https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=$latitude&longitude=$longitude&localityLanguage=en',
+      '${ApiConstants.reverseGeocodeBaseUrl}?latitude=$latitude&longitude=$longitude&localityLanguage=en',
     );
 
     try {

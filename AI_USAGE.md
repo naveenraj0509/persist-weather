@@ -3,6 +3,9 @@
 ## AI Tools Used
 
 - **Gemini (Antigravity IDE)**: Used as the primary AI coding assistant during development.
+- **claude(opus 4.5)**: Used as the secondary AI coding assistant during development.
+
+
 
 ## What AI Was Used For
 
@@ -18,8 +21,8 @@
 2. **Error handling strategy**: Reviewed the decision to show cached data on network errors vs. showing an error screen, handling location permission denials, and handling location service disabled exceptions.
 3. **State management flow**: Confirmed that `ChangeNotifier` + `Provider` is used consistently and location services are cleanly injected.
 4. **Offline caching design**: Reviewed the `CacheService` to ensure GPS-resolved location weather is also correctly cached.
-5. **API choice**: Switched to Open-Meteo and BigDataCloud to strictly adhere to the requirement of using free, keyless client APIs.
-6. **Navigation architecture**: Decided to use full-screen `SearchView` and `WeatherDetailView` via `Navigator.push` rather than dialogs, and mapped bottom bar icon actions cleanly.
+
+5. **Navigation architecture**: Decided to use full-screen `SearchView` and `WeatherDetailView` via `Navigator.push` rather than dialogs, and mapped bottom bar icon actions cleanly.
 
 ## AI-Generated Output Rejected or Corrected
 

@@ -39,13 +39,21 @@ class LocationService {
     try {
       return await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.low,
-          timeLimit: Duration(seconds: 10),
+          accuracy: LocationAccuracy.high,
+          timeLimit: Duration(seconds: 5),
         ),
       );
     } catch (e) {
+      try {
+        final lastKnown = await Geolocator.getLastKnownPosition();
+        if (lastKnown != null) {
+          return lastKnown;
+        }
+      } catch (_) {
+        // Ignore fallback errors and throw original
+      }
       throw LocationServiceException(
-        'Failed to retrieve location: $e. Please make sure location access is enabled.',
+        'Failed to retrieve location: $e. Please make sure location access is enabled. If you are using an emulator, please ensure a mock location is set and sent via the emulator controls.',
       );
     }
   }

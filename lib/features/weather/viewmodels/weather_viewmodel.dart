@@ -21,6 +21,7 @@ class WeatherViewModel extends ChangeNotifier {
   bool _isOffline = false;
   String _selectedCity = '';
   bool _isInitialized = false;
+  bool _lastActionWasGps = false;
 
   WeatherViewModel({
     required WeatherService weatherService,
@@ -79,6 +80,7 @@ class WeatherViewModel extends ChangeNotifier {
     _errorMessage = null;
     _isOffline = false;
     _selectedCity = city;
+    _lastActionWasGps = false;
     notifyListeners();
 
     try {
@@ -143,9 +145,11 @@ class WeatherViewModel extends ChangeNotifier {
     }
   }
 
-  /// Retries fetching weather for the last selected city.
+  /// Retries fetching weather for the last selected city or GPS location.
   Future<void> retry() async {
-    if (_selectedCity.isNotEmpty) {
+    if (_lastActionWasGps) {
+      await fetchWeatherForCurrentLocation();
+    } else if (_selectedCity.isNotEmpty) {
       await fetchWeather(_selectedCity);
     }
   }
@@ -155,6 +159,7 @@ class WeatherViewModel extends ChangeNotifier {
     _isLoading = true;
     _errorMessage = null;
     _isOffline = false;
+    _lastActionWasGps = true;
     notifyListeners();
 
     try {
